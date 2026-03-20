@@ -6,7 +6,7 @@
     "message_content": true
   },
 
-  "modules_enabled": ["welcome"],
+  "modules_enabled": ["welcome", "logging_system", "infoaudit"],
 
   "discohook_local": {
     "enabled": true,
