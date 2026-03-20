@@ -12,15 +12,15 @@ class logging_system(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.allowed_guild_id = 1409295951671201855  # ID вашего сервера
+        self.allowed_guild_id = 1484618037049954367  # ID вашего сервера
         self.log_channels = {
-            "voice": 1479248011333861638,      # 🔊・voice-join-leave
-            "roles": 1479248087615799296,      # 🔮・role-changes-logs
-            "name": 1479248098571059402,       # 📑・log-name-edit
-            "messages": 1479248115637682400,   # 📩・message-logs
-            "join_leave": 1479248129508380722, # 📊・join-leave-user
-            "mod": 1479248152786632781,        # ⛔・ban-kick-user
-            "other": 1479248174366593024       # 📦・other-logs
+            "voice": 1484640555152703649,      # 🔊・voice-join-leave
+            "roles": 1484640589399068783,      # 🔮・role-changes-logs
+            "name": 1484640654540800243,       # 📑・log-name-edit
+            "messages": 1484640678679150632,   # 📩・message-logs
+            "join_leave": 1484640712439103618, # 📊・join-leave-user
+            "mod": 1484640734610067619,        # ⛔・ban-kick-user
+            "other": 1484640761881432135       # 📦・other-logs
         }
 
     def is_allowed_guild(self, guild_id: int) -> bool:
