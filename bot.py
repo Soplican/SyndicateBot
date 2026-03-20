@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os  # <-- добавлен импорт os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -130,11 +131,34 @@ def build_intents(cfg: dict) -> discord.Intents:
 
 
 # -------------------------
+# Синхронизация слеш-команд (простая реализация)
+# -------------------------
+async def sync_app_commands_all_guilds(bot: commands.Bot):
+    """Глобальная синхронизация слеш-команд"""
+    try:
+        synced = await bot.tree.sync()
+        print(f"Синхронизировано {len(synced)} команд")
+    except Exception as e:
+        print(f"Ошибка синхронизации: {e}")
+
+
+# -------------------------
 # Bot
 # -------------------------
 async def main():
     cfg = load_main_config()
     log = setup_bot_logger()
+
+    # Получаем токен из переменных окружения или конфига
+    token = os.getenv('API_TOKEN') or os.getenv('BOT_TOKEN') or cfg.get('token')
+    if not token:
+        raise ValueError("Токен не найден. Установите переменную API_TOKEN или BOT_TOKEN, "
+                         "либо добавьте поле 'token' в config.json")
+    token = token.strip()  # убираем лишние пробелы
+    log.info("Токен загружен из %s",
+             "переменной окружения" if (os.getenv('API_TOKEN') or os.getenv('BOT_TOKEN')) else "config.json")
+    # Отладочный вывод (можно убрать)
+    log.info(f"Первые 10 символов токена: {token[:10]}...")
 
     intents = build_intents(cfg)
     bot = commands.Bot(command_prefix=cfg.get("prefix", "!"), intents=intents)
@@ -153,7 +177,7 @@ async def main():
         # Автосинк slash-команд на всех серверах, где есть бот
         if not getattr(bot, "_appcmds_synced", False):
             try:
-                await sync_app_commands_all_guilds()
+                await sync_app_commands_all_guilds(bot)  # передаём bot в функцию
             finally:
                 bot._appcmds_synced = True
 
@@ -166,7 +190,7 @@ async def main():
             return await ctx.send("Нет прав.")
         await ctx.send("🔄 Синхронизирую slash-команды на всех серверах, где есть бот…")
         try:
-            await sync_app_commands_all_guilds()
+            await sync_app_commands_all_guilds(bot)
             await ctx.send("✅ Готово: команды синхронизированы.")
         except Exception as e:
             log.error(f"[APP COMMANDS] manual sync failed -> {e}")
@@ -328,7 +352,8 @@ async def setup(bot: commands.Bot):
     enabled = cfg.get("modules_enabled")
     bot.module_status = await load_modules(bot, enabled, log)
 
-    await bot.start(cfg["token"])
+    # Запуск бота с правильным токеном
+    await bot.start(token)
 
 
 if __name__ == "__main__":
