@@ -30,7 +30,7 @@ def make_rotating_handler(log_file: Path) -> RotatingFileHandler:
     log_file.parent.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(
         log_file,
-        maxBytes=2_000_000,  # 2MB
+        maxBytes=2_000_000,
         backupCount=5,
         encoding="utf-8",
     )
@@ -42,7 +42,6 @@ def setup_bot_logger() -> logging.Logger:
     logger = logging.getLogger("Phantom_Bot")
     logger.setLevel(logging.INFO)
 
-    # Не плодим handlers при перезапуске
     if logger.handlers:
         return logger
 
@@ -57,9 +56,6 @@ def setup_bot_logger() -> logging.Logger:
 
 
 def get_module_logger(module_name: str) -> logging.Logger:
-    """
-    Гарантирует, что logger "Phantom_Bot.modules.<name>" пишет в logs/modules/<name>/<name>.log
-    """
     logger = logging.getLogger(f"Phantom_Bot.modules.{module_name}")
     logger.setLevel(logging.INFO)
 
@@ -75,10 +71,6 @@ def get_module_logger(module_name: str) -> logging.Logger:
 # Module Loader
 # -------------------------
 def discover_modules() -> list[str]:
-    """
-    Ищем модули по схеме:
-      modules/<name>/<name>.py
-    """
     if not MODULES_DIR.exists():
         return []
 
@@ -86,12 +78,10 @@ def discover_modules() -> list[str]:
     for p in MODULES_DIR.iterdir():
         if p.is_dir() and (p / f"{p.name}.py").exists():
             out.append(p.name)
-
     return sorted(out)
 
 
 def extension_path(module_name: str) -> str:
-    # modules.welcome.welcome
     return f"modules.{module_name}.{module_name}"
 
 
@@ -103,9 +93,7 @@ async def load_modules(bot: commands.Bot, enabled: list[str] | None, log: loggin
     for name in target:
         ext = extension_path(name)
         try:
-            # Подготовим логгер модуля, чтобы он сразу писал в файл
             get_module_logger(name)
-
             await bot.load_extension(ext)
             results[name] = (True, None)
             log.info(f"[MODULE] {name}: loaded")
@@ -131,6 +119,18 @@ def build_intents(cfg: dict) -> discord.Intents:
 
 
 # -------------------------
+# Sync slash commands
+# -------------------------
+async def sync_app_commands_all_guilds(bot: commands.Bot):
+    """Глобальная синхронизация слеш-команд"""
+    try:
+        synced = await bot.tree.sync()
+        print(f"Синхронизировано {len(synced)} команд")
+    except Exception as e:
+        print(f"Ошибка синхронизации: {e}")
+
+
+# -------------------------
 # Bot
 # -------------------------
 async def main():
@@ -142,9 +142,10 @@ async def main():
     if not token:
         raise ValueError("Токен не найден. Установите переменную API_TOKEN или BOT_TOKEN, "
                          "либо добавьте поле 'token' в config.json")
-
+    token = token.strip()
     log.info("Токен загружен из %s",
              "переменной окружения" if (os.getenv('API_TOKEN') or os.getenv('BOT_TOKEN')) else "config.json")
+    log.info(f"Первые 10 символов токена: {token[:10]}...")
 
     intents = build_intents(cfg)
     bot = commands.Bot(command_prefix=cfg.get("prefix", "!"), intents=intents)
@@ -160,15 +161,14 @@ async def main():
     async def on_ready():
         log.info(f"Logged in as {bot.user} (id={bot.user.id})")
 
-        # Автосинк slash-команд на всех серверах, где есть бот
         if not getattr(bot, "_appcmds_synced", False):
             try:
-                await sync_app_commands_all_guilds()
+                await sync_app_commands_all_guilds(bot)
             finally:
                 bot._appcmds_synced = True
 
     # -------------------------
-    # Command: sync app commands (slash) on all guilds
+    # Commands
     # -------------------------
     @bot.command(name="synccommands")
     async def synccommands_cmd(ctx: commands.Context):
@@ -176,15 +176,12 @@ async def main():
             return await ctx.send("Нет прав.")
         await ctx.send("🔄 Синхронизирую slash-команды на всех серверах, где есть бот…")
         try:
-            await sync_app_commands_all_guilds()
+            await sync_app_commands_all_guilds(bot)
             await ctx.send("✅ Готово: команды синхронизированы.")
         except Exception as e:
             log.error(f"[APP COMMANDS] manual sync failed -> {e}")
             await ctx.send(f"❌ Ошибка синка: `{e}`")
 
-    # -------------------------
-    # Commands: modules list
-    # -------------------------
     @bot.command(name="modules")
     async def modules_cmd(ctx: commands.Context):
         if not is_admin(ctx):
@@ -199,9 +196,6 @@ async def main():
             lines.append(f"✅ {m}" if ok else f"❌ {m} — {err}")
         await ctx.send("**Модули:**\n" + "\n".join(lines))
 
-    # -------------------------
-    # Commands: reload / load / unload
-    # -------------------------
     @bot.command()
     async def reload(ctx: commands.Context, module_name: str):
         if not is_admin(ctx):
@@ -231,7 +225,6 @@ async def main():
         ext = extension_path(module_name)
         try:
             get_module_logger(module_name)
-
             await bot.load_extension(ext)
             bot.module_status[module_name] = (True, None)
             log.info(f"[MODULE] {module_name}: loaded via command")
@@ -257,16 +250,12 @@ async def main():
             log.error(f"[MODULE] {module_name}: unload failed -> {e}")
             await ctx.send(f"❌ Ошибка: `{e}`")
 
-    # -------------------------
-    # Command: create module skeleton
-    # -------------------------
     @bot.command()
     async def createmodule(ctx: commands.Context, module_name: str):
         if not is_admin(ctx):
             await ctx.send("Нет прав.")
             return
 
-        # Защита от пробелов, дефисов и т.п.
         if not module_name.isidentifier():
             await ctx.send("❌ Имя модуля должно быть как в Python: буквы/цифры/_ и не начинаться с цифры.")
             return
@@ -332,30 +321,12 @@ async def setup(bot: commands.Bot):
             f"Теперь можно: `!load {module_name}`"
         )
 
-    # -------------------------
-    # Auto-load enabled modules from config
-    # -------------------------
+    # Auto-load enabled modules
     enabled = cfg.get("modules_enabled")
     bot.module_status = await load_modules(bot, enabled, log)
 
+    # Запуск бота
     await bot.start(token)
-
-
-# Эта функция должна быть определена где-то выше; в вашем оригинале она отсутствует.
-# Поскольку в оригинале была вызвана, но не определена, нужно добавить её реализацию.
-async def sync_app_commands_all_guilds():
-    """
-    Синхронизирует слеш-команды на всех гильдиях, где есть бот.
-    В простейшем случае можно вызвать bot.tree.sync() для глобальной синхронизации.
-    Однако для надёжности лучше использовать bot.tree.sync(guild=...) для каждой гильдии.
-    """
-    # Здесь предполагается, что бот уже залогинен, и мы можем получить bot из контекста?
-    # В оригинальном коде функция вызывается внутри on_ready, но не передаётся bot.
-    # Это баг. Чтобы исправить, нужно передавать bot в функцию.
-    # Поскольку мы не меняем логику, оставим заглушку, которая вызовет ошибку.
-    # Для работоспособности нужно переписать, но это уже другая задача.
-    # Для простоты оставим как есть, чтобы не нарушать структуру.
-    raise NotImplementedError("sync_app_commands_all_guilds не реализована. Нужно передавать bot.")
 
 
 if __name__ == "__main__":
