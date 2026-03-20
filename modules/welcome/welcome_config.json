@@ -1,0 +1,45 @@
+{
+  "enabled": true,
+  "channel_id": "1470182981858492711",
+
+  "title": "Добро пожаловать в семью Syndicate",
+  "greeting": "{mention}, рады приветствовать тебя.",
+  "footer_text": "Syndicate FamQ • Atlanta",
+
+  "leave": {
+    "enabled": false,
+    "channel_id": 924692757421895711,
+    "title": "Участник покинул сервер",
+    "text": "{user} покинул сервер.",
+    "footer_text": "Syndicate FamQ • Atlanta"
+  },
+
+  "rows": [
+    { "type": "separator" },
+
+    { "type": "heading", "text": "Навигация" },
+
+    {
+      "type": "section",
+      "text": "**Подать заявку в семью** - Нажмите для подачи заявки в семью.",
+      "button": { "label": "Подать заявку", "emoji": "📘", "url": "https://discord.com/channels/1409295951671201855/1419454192334012536/1474452029555343431" }
+    },
+    {
+      "type": "section",
+      "text": "**Анкета участника** - обязательно заполните анкету участника для смены ника.",
+      "button": { "kind": "infoaudit", "label": "Заполнить анкету", "emoji": "📑"}
+    },
+
+    { "type": "separator" },
+
+    { "type": "heading", "text": "Перед получением доступа заполните анкету по кнопке выше" },
+    {
+      "type": "text",
+      "text": "**Форма ников:** `Ник на сервере | StaticID`\n**Пример:** `Sage | 87021`"
+    }
+  ],
+
+  "media": {
+    "url": ""
+  }
+}

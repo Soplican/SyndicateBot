@@ -1,0 +1,21 @@
+{
+  "token": "MTQ4NDM3NjM1ODQ4NTIzMzc2NQ.Gp-3ZK.wgu_OYQv2FnK25f9FBHAlbN2AAQAaIN9MUPz3A",
+  "prefix": "!",
+  "intents": {
+    "members": true,
+    "message_content": true
+  },
+
+  "modules_enabled": ["welcome"],
+
+  "discohook_local": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 50226,
+    "api_secret": "Syndicate1212",
+
+    "default_channel_id": 0,
+    "allow_webhook_send": true,
+    "allow_bot_send": true
+  }
+}
