@@ -1,0 +1,45 @@
+{
+  "panel_channel_id": 1486402031978676315,
+  "category_id": 1486401978715082892,
+
+  "ping_role_id": 1486401631812587572,
+  "staff_role_id": [1486401631812587572, 1484618037465321559, 1484618037481963520, 1484618037481963522],
+
+  "tier_roles": {
+    "tier1": 1486401789053108255,
+    "tier2": 1486401809009348789,
+    "tier3": 1486401809894604833,
+    "tier4": 1486401810871881948
+  },
+
+  
+  "create_panel_media_url": "",
+  "allow_one_active_channel_per_user": true,
+  "enforce_single_tier": true,
+  "staff_can_manage_messages": true,
+
+  "channel_name_prefix": "откаты",
+
+  "create_button_label": "Создать личный канал",
+
+  "main_title": "Откаты",
+  "main_desc": "Нажми кнопку ниже, чтобы создать приватный канал.",
+  "main_footer": "Syndicate FamQ • Atlanta",
+  "main_image_url": "https://cdn.discordapp.com/attachments/1479249477746298953/1479258352738631721/welcome_image.png?ex=69ab6232&is=69aa10b2&hm=de4f2ad863c7ad56581682b64b728ca5ada99418b8a1e4955fc71e210d7d5591&",
+
+  "channel_title": "Панель отката",
+  "channel_desc": "Выберите Tier или запросите откат.",
+
+  "rollback_text": "<@{requester}> запросил у вас откат с последнего мероприятия.",
+
+  "no_perms_text": "❌ У вас нет прав для использования этой панели.",
+  "already_exists_title": "Канал уже создан",
+  "already_exists_text": "У тебя уже есть открытый канал: <#{channel}>",
+
+  "discohook_local_url": "http://127.0.0.1:50226/",
+
+  "staff_create_button_label": "Создать канал для участника",
+  "user_select_title": "Выберите пользователя",
+  "user_select_desc": "Выберите участника, для которого нужно создать канал отката",
+  "already_exists_for_user_text": "У пользователя <@{user}> уже есть открытый канал: <#{channel}>"
+}
