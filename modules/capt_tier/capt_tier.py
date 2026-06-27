@@ -50,13 +50,36 @@ def parse_creator(topic: Optional[str]) -> Optional[int]:
     return None
 
 
+def managed_category_index(name: str, base_name: str) -> Optional[int]:
+    """Возвращает номер категории откатов: base=1, base 2=2, base 3=3..."""
+    name = name.strip()
+    base_name = base_name.strip()
+    if name == base_name:
+        return 1
+    m = re.fullmatch(rf"{re.escape(base_name)}\s+(\d+)", name)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def get_managed_categories(guild: discord.Guild, base_category: discord.CategoryChannel) -> List[discord.CategoryChannel]:
+    base_name = base_category.name
+    cats = []
+    for cat in guild.categories:
+        idx = managed_category_index(cat.name, base_name)
+        if idx is not None:
+            cats.append(cat)
+    return sorted(cats, key=lambda c: (managed_category_index(c.name, base_name) or 999999, c.position))
+
+
 async def find_existing_channel(guild: discord.Guild, category_id: int, creator_id: int) -> Optional[discord.TextChannel]:
-    cat = guild.get_channel(category_id)
-    if not isinstance(cat, discord.CategoryChannel):
+    base_cat = guild.get_channel(category_id)
+    if not isinstance(base_cat, discord.CategoryChannel):
         return None
-    for ch in cat.channels:
-        if isinstance(ch, discord.TextChannel) and (ch.topic or "").strip() == topic_for_creator(creator_id):
-            return ch
+    for cat in get_managed_categories(guild, base_cat):
+        for ch in cat.channels:
+            if isinstance(ch, discord.TextChannel) and (ch.topic or "").strip() == topic_for_creator(creator_id):
+                return ch
     return None
 
 
@@ -68,6 +91,35 @@ async def unique_name_in_category(category: discord.CategoryChannel, base: str) 
     while f"{base}-{i}" in existing:
         i += 1
     return f"{base}-{i}"
+
+
+async def get_or_create_available_category(guild: discord.Guild, base_category_id: int, limit: int = 50) -> Optional[discord.CategoryChannel]:
+    """
+    Берёт последнюю категорию откатов. Если она заполнена, создаёт новую
+    и ставит её сразу после последней уже созданной категории откатов.
+    """
+    base_cat = guild.get_channel(base_category_id)
+    if not isinstance(base_cat, discord.CategoryChannel):
+        return None
+
+    categories = get_managed_categories(guild, base_cat)
+    last_cat = categories[-1] if categories else base_cat
+
+    if len(last_cat.channels) < limit:
+        return last_cat
+
+    used_numbers = {managed_category_index(cat.name, base_cat.name) for cat in categories}
+    next_number = 2
+    while next_number in used_numbers:
+        next_number += 1
+
+    new_cat = await guild.create_category(
+        name=f"{base_cat.name} {next_number}",
+        overwrites=base_cat.overwrites,
+        reason="capt_tier: auto create category because previous category is full",
+    )
+    await new_cat.edit(position=last_cat.position + 1, reason="capt_tier: place new category after previous one")
+    return new_cat
 
 
 # -------------------------
@@ -356,7 +408,11 @@ class CaptTier(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         try:
             guild = interaction.guild
-            category = guild.get_channel(int(self.cfg["category_id"]))
+            category = await get_or_create_available_category(
+                guild,
+                int(self.cfg["category_id"]),
+                int(self.cfg.get("category_channel_limit", 50))
+            )
             if not isinstance(category, discord.CategoryChannel):
                 return await interaction.followup.send("❌ Категория не найдена", ephemeral=True)
             if self.cfg.get("allow_one_active_channel_per_user", True):
@@ -414,7 +470,11 @@ class CaptTier(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         try:
             guild = interaction.guild
-            category = guild.get_channel(int(self.cfg["category_id"]))
+            category = await get_or_create_available_category(
+                guild,
+                int(self.cfg["category_id"]),
+                int(self.cfg.get("category_channel_limit", 50))
+            )
             if not isinstance(category, discord.CategoryChannel):
                 return await interaction.followup.send("❌ Категория не найдена", ephemeral=True)
             if self.cfg.get("allow_one_active_channel_per_user", True):
